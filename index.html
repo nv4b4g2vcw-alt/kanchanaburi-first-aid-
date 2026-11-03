@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard ติดตามกิจกรรมและบริการผู้ป่วย (เชื่อม Google Sheets)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&family=Noto+Serif+Thai:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1B2A4A;--mute:#4E5C7A;--tx:#1B2A4A;--mx:#4E5C7A;--card:#fff;--line:#DCD3EC;--navy:#243B6B;--p1:#F8CADB;--p2:#F7EBCF;--p3:#FFFBF0;--p4:#CBE4F9;--p5:#D9ECFB;--p6:#DCD0F5;--p7:#EBD5F2;--s0:#EFE9DA;--s1:#C8EBC9;--s2:#FFE3A3;--s3:#FFB8C2;--t1:#BFE3FA;--t2:#D9C8F5;--bev:inset 0 1px 0 #fff,0 1px 0 #fff,0 10px 18px -10px rgba(36,59,107,.45);box-sizing:border-box}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:"Noto Sans Thai","Sarabun",Tahoma,sans-serif;line-height:1.55;background:linear-gradient(160deg,#FFFBF2 0,#FFF6F8 35%,#F3F8FF 70%,#F8F3FF 100%) fixed}
+body::before{content:"";position:fixed;top:0;left:0;right:0;height:6px;z-index:5;background:linear-gradient(90deg,#F26D85,#F5A14E,#F3D24A,#6CC686,#58B2EA,#7B8FE8,#B27CE0)}
+.tab:nth-child(1){background:linear-gradient(#FFE3EA,#FFB8C8)}.tab:nth-child(2){background:linear-gradient(#FFEBD2,#FFCB96)}.tab:nth-child(3){background:linear-gradient(#E2F6E4,#B5E5BC)}.tab:nth-child(4){background:linear-gradient(#E3F2FD,#A8D6F5)}
+.wrap{max-width:1150px;margin:0 auto;padding:14px;padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+h1,h2,h3{font-family:"Noto Serif Thai","Noto Sans Thai",serif;color:#14192B}
+header{position:relative;overflow:hidden;border-radius:20px;padding:20px 24px;color:var(--ink);background:linear-gradient(120deg,#FFC2D1,#FFD9B3 18%,#FFF3B0 34%,#C5EDC8 50%,#B3E0F8 66%,#C3C6F7 82%,#E3C6F4);border:1px solid #fff;border-bottom:5px solid var(--navy);box-shadow:inset 0 2px 0 #fff,0 16px 28px -16px rgba(36,59,107,.6)}
+header>*:not(.art){position:relative;z-index:1}
+header h1{margin:0 0 4px;font-size:1.5rem}header p{margin:0;font-size:.92rem;color:var(--mute)}
+.art{position:absolute;right:10px;bottom:0;width:360px}
+@media(min-width:900px){header{padding-right:390px;min-height:205px}}@media(max-width:899px){.art{display:none}}
+.live{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;font-size:.84rem}
+.badge{padding:3px 12px;border-radius:999px;font-weight:700;background:#fff;border:1px solid var(--line);border-bottom-width:3px}
+.badge.on::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:#2E8B6E;margin-right:7px;animation:p 1.6s infinite}
+.badge.off{background:#F7EBCF;color:#6B4E00}
+@keyframes p{50%{opacity:.25}}@media(prefers-reduced-motion:reduce){.badge.on::before{animation:none}}
+select,button,input,textarea{font:inherit;font-size:.86rem;color:var(--ink);background:#fff;border:1px solid #C9BEE0;border-radius:10px;padding:6px 10px;box-shadow:inset 0 1px 2px rgba(36,59,107,.12)}
+button{cursor:pointer;font-weight:500;background:linear-gradient(#fff,#F1ECFA);border-bottom:3px solid #BBAEDB;box-shadow:0 1px 0 #fff inset}
+button:active{transform:translateY(1px);border-bottom-width:2px}
+:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+.bar2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 4px}
+.tabs{display:flex;gap:8px;overflow-x:auto;flex:1 1 auto;padding:2px 2px 6px}
+.tab{flex:0 0 auto;border-radius:12px;padding:8px 18px}
+.tab[aria-selected="true"]{background:linear-gradient(#34508F,var(--navy));color:#fff;border-color:var(--navy);border-bottom-color:#14213F;font-weight:700}
+.card{background:linear-gradient(#fff,#FCFAFF);border:1px solid var(--line);border-bottom:4px solid #CBBFE6;border-radius:18px;padding:18px;margin-top:14px;box-shadow:var(--bev)}
+.card h2{margin:0 0 12px;font-size:1.05rem;padding-bottom:8px;border-bottom:2px solid #EFE8FA}
+.card h2::before{content:"";display:inline-block;width:8px;height:18px;border-radius:4px;margin-right:8px;vertical-align:-3px;background:linear-gradient(#F26D85,#F5A14E,#F3D24A,#6CC686,#58B2EA,#B27CE0)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-top:14px}
+.kpi{position:relative;border-radius:18px;padding:14px 16px;border:1px solid #fff;border-bottom:5px solid rgba(36,59,107,.25);box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 12px 20px -12px rgba(36,59,107,.5)}
+.kpi:nth-child(1){background:linear-gradient(#E3F3FE,#A8D6F5)}.kpi:nth-child(2){background:linear-gradient(#E4F7E6,#B5E5BC)}.kpi:nth-child(3){background:linear-gradient(#FFE6EC,#FFB8C8)}.kpi:nth-child(4){background:linear-gradient(#EEE6FC,#CDBCF2)}.kpi:nth-child(5){background:linear-gradient(#FFF0D9,#FFCB96)}
+.kpi b{display:block;font-size:2.1rem;line-height:1.15;color:#14192B}.kpi span{font-size:.86rem;color:var(--mute)}
+.kpi svg{position:absolute;right:12px;top:12px;width:34px;height:34px;opacity:.35;stroke:var(--navy);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:0 14px}
+.pn{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.dn{position:relative;width:150px;height:150px;border-radius:50%;flex:0 0 auto;box-shadow:0 8px 14px -8px rgba(36,59,107,.55),inset 0 0 0 3px #fff}
+.dn::after{content:"";position:absolute;inset:27px;background:linear-gradient(#fff,#F4EFFB);border-radius:50%;box-shadow:inset 0 3px 6px rgba(36,59,107,.2)}
+.dn span{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.8rem;color:var(--mute)}
+.dn b{color:#14192B}
+.cats{flex:1 1 260px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.ct{border-radius:14px;padding:12px 14px;border:1px solid #fff;border-bottom:4px solid rgba(36,59,107,.22);box-shadow:inset 0 1px 0 #fff,0 6px 10px -8px rgba(36,59,107,.5)}
+.ct b{display:block;font-size:1.9rem;line-height:1.1;color:#14192B}.ct span{display:block;font-size:.84rem;font-weight:700}.ct small{font-size:.74rem;color:var(--mute)}
+.hb{display:grid;grid-template-columns:minmax(110px,40%) 1fr 38px;gap:8px;align-items:center;margin:8px 0;font-size:.86rem}
+.hb .t{background:#EEE8F7;border-radius:8px;height:20px;overflow:hidden;box-shadow:inset 0 2px 3px rgba(36,59,107,.22)}
+.hb .f{height:100%;border-radius:8px;background:var(--c);box-shadow:inset 0 2px 0 rgba(255,255,255,.55),inset 0 -2px 0 rgba(36,59,107,.18)}
+.hb b{text-align:right}
+.ev{border-left:9px solid var(--c)}.ev h3{margin:0 0 4px;font-size:1rem}.meta{font-size:.82rem;color:var(--mute)}
+.chip{display:inline-block;padding:1px 10px;border-radius:999px;font-size:.76rem;font-weight:700;border:1px solid rgba(36,59,107,.15)}
+.chip.ok{background:#C8EBC9;color:#14532D}.chip.wn{background:#F7EBCF;color:#5A4410}.chip.bad{background:#F8CADB;color:#7A1F42}.chip.lc{background:var(--p7);color:#4B2A7A}
+.pill{display:inline-block;padding:3px 11px;border-radius:999px;font-size:.8rem;margin:8px 6px 0 0;font-weight:500;border:1px solid #fff;border-bottom:2px solid rgba(36,59,107,.22);box-shadow:0 2px 4px -2px rgba(36,59,107,.4)}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.87rem;margin:10px 0 0}.dl dt{color:var(--mute)}.dl dd{margin:0;white-space:pre-wrap}
+.fm{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.fm label{display:flex;flex-direction:column;gap:3px;font-size:.82rem;color:var(--mute);font-weight:500}.fm .w{grid-column:1/-1}
+.fm .g1,.fm .g2,.fm .g3,.fm .g4{color:var(--ink);padding:8px 10px;border-radius:12px;border-bottom:3px solid rgba(36,59,107,.2)}
+.fm input,.fm select,.fm textarea{width:100%}
+.fm .g1{background:var(--s1)}.fm .g2{background:var(--s2)}.fm .g3{background:var(--s3)}.fm .g4{background:var(--p7)}
+.sub{padding:9px 24px;border-radius:12px;background:linear-gradient(#34508F,var(--navy));color:#fff;border:1px solid var(--navy);border-bottom:4px solid #14213F;font-weight:700}
+.ok2,.er2{color:var(--ink);padding:10px 14px;border-radius:12px;margin-top:10px;border:1px solid rgba(36,59,107,.15)}.ok2{background:#CFE6FA}.er2{background:#F8CADB}
+.empty,.err{padding:14px;border-radius:14px;font-size:.88rem;margin-top:14px}
+.empty{background:#fff;color:var(--mute);text-align:center;border:1px solid var(--line);border-bottom:4px solid #CBBFE6}.empty svg{width:110px;display:block;margin:0 auto 6px}
+.err{background:#F7EBCF;color:#5A4410;border:1px solid #E8D6A8}
+.banner{display:flex;gap:16px;align-items:center;margin-top:14px;padding:12px 22px;border-radius:18px;color:var(--ink);background:linear-gradient(120deg,#FFC2D1,#FFD9B3,#FFF3B0,#C5EDC8,#B3E0F8,#D2C4F5);border:1px solid #fff;border-bottom:5px solid rgba(36,59,107,.28);box-shadow:inset 0 2px 0 #fff,0 14px 24px -14px rgba(36,59,107,.55)}
+.banner svg{width:96px;flex:0 0 auto}.banner b{font-size:1.5rem}.banner p{margin:0}
+footer{color:var(--mute);font-size:.78rem;text-align:center;padding:16px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div class="art" aria-hidden="true"><svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg"><defs>
+<linearGradient id="a1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#E9EEF6"/><stop offset="1" stop-color="#B7C4D8"/></linearGradient>
+<linearGradient id="a2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EAF7FF"/><stop offset=".5" stop-color="#6DAEE8"/><stop offset="1" stop-color="#244E8E"/></linearGradient>
+<linearGradient id="a3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#F26D85"/><stop offset=".17" stop-color="#F5A14E"/><stop offset=".34" stop-color="#F3D24A"/><stop offset=".51" stop-color="#6CC686"/><stop offset=".68" stop-color="#58B2EA"/><stop offset=".84" stop-color="#7B8FE8"/><stop offset="1" stop-color="#B27CE0"/></linearGradient>
+<linearGradient id="a4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F6FA"/><stop offset="1" stop-color="#7E8AA0"/></linearGradient>
+<radialGradient id="a5"><stop offset="0" stop-color="#F6F8FB"/><stop offset=".4" stop-color="#9AA6B8"/><stop offset=".55" stop-color="#4A5568"/><stop offset=".6" stop-color="#20242E"/><stop offset="1" stop-color="#0E1016"/></radialGradient>
+<radialGradient id="a6"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<filter id="a7" x="-10%" y="-10%" width="120%" height="140%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+<ellipse cx="200" cy="184" rx="185" ry="9" fill="#243B6B" opacity=".35" filter="url(#a7)"/>
+<path d="M44 170A156 156 0 0 1 356 170" fill="none" stroke="#F26D85" stroke-width="6.4" opacity=".9"/><path d="M50 170A150 150 0 0 1 350 170" fill="none" stroke="#F5A14E" stroke-width="6.4" opacity=".9"/><path d="M56 170A144 144 0 0 1 344 170" fill="none" stroke="#F3D24A" stroke-width="6.4" opacity=".9"/><path d="M62 170A138 138 0 0 1 338 170" fill="none" stroke="#6CC686" stroke-width="6.4" opacity=".9"/><path d="M68 170A132 132 0 0 1 332 170" fill="none" stroke="#58B2EA" stroke-width="6.4" opacity=".9"/><path d="M74 170A126 126 0 0 1 326 170" fill="none" stroke="#7B8FE8" stroke-width="6.4" opacity=".9"/><path d="M80 170A120 120 0 0 1 320 170" fill="none" stroke="#B27CE0" stroke-width="6.4" opacity=".9"/><path d="M4 70h46M18 88h64M0 106h30" stroke="#fff" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/>
+<path d="M36 26h40l8-14 12 30 10-20 8 4h34" fill="none" stroke="#F26D85" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>
+<rect x="44" y="52" width="214" height="104" rx="16" fill="url(#a1)" stroke="#fff" stroke-width="1.5"/>
+<rect x="52" y="56" width="198" height="9" rx="4" fill="#fff" opacity=".8"/>
+<path d="M258 80h48q22 0 34 22l18 30v24h-100z" fill="url(#a1)" stroke="#fff" stroke-width="1.5"/>
+<path d="M270 88h34q13 0 21 13l11 19h-66z" fill="url(#a2)"/><path d="M274 92l28 0-22 26h-8z" fill="#fff" opacity=".42"/><path d="M296 92h10l-20 26h-8z" fill="#fff" opacity=".22"/>
+<rect x="64" y="74" width="50" height="28" rx="6" fill="url(#a2)"/><path d="M68 78h22l-14 20h-8z" fill="#fff" opacity=".4"/>
+<rect x="44" y="122" width="314" height="14" fill="url(#a3)"/><rect x="44" y="122" width="314" height="3" fill="#fff" opacity=".45"/>
+<text x="196" y="116" font-family="Arial,sans-serif" font-size="11" font-weight="700" letter-spacing="2" fill="#243B6B">AMBULANCE</text>
+<circle cx="152" cy="92" r="24" fill="#fff" stroke="#DCD0F5" stroke-width="2"/><path d="M145 78h14v9h9v14h-9v9h-14v-9h-9V87h9z" fill="#D8527E"/><path d="M145 78h14v3h-14z" fill="#fff" opacity=".4"/>
+<rect x="150" y="38" width="42" height="14" rx="6" fill="#4F8FD6"/><rect x="192" y="38" width="42" height="14" rx="6" fill="#F26D85"/>
+<circle cx="171" cy="42" r="26" fill="url(#a6)" opacity=".8"/><circle cx="213" cy="42" r="26" fill="url(#a6)" opacity=".8"/>
+<rect x="344" y="136" width="30" height="14" rx="6" fill="url(#a4)"/><rect x="360" y="104" width="14" height="12" rx="4" fill="#FFF3C4"/><circle cx="372" cy="110" r="16" fill="url(#a6)"/>
+<path d="M44 150h316" stroke="#7E8AA0" stroke-width="2" opacity=".5"/>
+<circle cx="108" cy="152" r="31" fill="#1C2030"/><circle cx="108" cy="152" r="26" fill="url(#a5)"/><circle cx="108" cy="152" r="8" fill="#D5DCE6" stroke="#6B7688"/>
+<circle cx="306" cy="152" r="31" fill="#1C2030"/><circle cx="306" cy="152" r="26" fill="url(#a5)"/><circle cx="306" cy="152" r="8" fill="#D5DCE6" stroke="#6B7688"/>
+<path d="M98 140q10-6 20 0" stroke="#fff" stroke-width="2" fill="none" opacity=".5"/><path d="M296 140q10-6 20 0" stroke="#fff" stroke-width="2" fill="none" opacity=".5"/></svg></div>
+<h1>Dashboard กิจกรรม จำนวนผู้ป่วย อาการ และการรักษา</h1>
+<p>ดึงข้อมูลจาก Google Sheets อัตโนมัติ · กรอกข้อมูลเพิ่มได้ในแท็บ “กรอกข้อมูล”</p>
+<div class="live">
+<span class="badge off" id="stat">กำลังเชื่อมต่อ…</span>
+<span id="upd"></span><span id="cd"></span>
+<label>รีเฟรชทุก <select id="iv"><option value="30">30 วินาที</option><option value="45" selected>45 วินาที</option><option value="60">60 วินาที</option></select></label>
+<button id="rf" type="button">โหลดข้อมูลตอนนี้</button>
+
+</div>
+</header>
+<div id="errbox"></div>
+<div class="bar2">
+<div class="tabs" role="tablist" id="tabs"></div>
+<select id="fm" aria-label="เดือน"></select>
+<select id="fs" aria-label="สถานะ"><option value="">ทุกสถานะ</option></select>
+<input type="search" id="q" placeholder="ค้นหากิจกรรม/สถานที่" aria-label="ค้นหา">
+</div>
+<main id="main"></main>
+<footer>ระดับอาการของข้อมูลจากชีตถอดจากคำในช่อง “อาการ” (ปรับคำได้ที่ SEVRE/MODRE) และนับผู้ป่วยส่งต่อเป็นอาการปานกลางอย่างน้อย · ข้อมูลที่กรอกในหน้านี้เก็บเฉพาะในเบราว์เซอร์เครื่องนี้</footer>
+</div>
+<script>
+/* ===== ตั้งค่า ===== */
+var SCRIPT_URL=""; /* ใส่ URL ของ Apps Script (ถ้ามี) เพื่อบันทึกข้อมูลที่กรอกลงชีตจริง */
+var SEVRE=/รุนแรง|วิกฤต|หมดสติ|หัวใจหยุด|cpr|ชัก|ช็อก|เจ็บหน้าอก|อัมพาต|stroke|หายใจล้มเหลว/i;
+var MODRE=/ปานกลาง|เป็นลม|syncope|หน้ามืด|ชา|หายใจลำบาก|เหนื่อยหอบ|กระดูกหัก|เลือดออก|น้ำตาลต่ำ|ความดัน|อาเจียน/i;
+var CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSsySTC4_7l7nMCpKx9_cLoiPv-4MX1suvLbpuTIS752-Rt_bU9L-4Xr-GiBiRB_5qKvyNqc-LyShIo/pub?gid=396787758&single=true&output=csv";
+var SNAPSHOT='วันที่ / เวลา,กิจกรรม , สถานที่,ผู้ปฏิบัติงาน,,,,,สถานะ,ผู้ป่วย,,,ปัญหา,หมายเหตุ,ผู้ลง,,\n,,,แพทย์,พยาบาล,ผู้ช่วย,จนท.มูลนิธิ,พขร,,จำนวน,อาการ,การปฐมพยาบาล,,,ชื่อ,ตำแหน่ง,หน่วยงาน\n29 ต.ค. 69 / 09.00 น,การขอรับทุนการศึกษา มูลนิธิคุณพุ่ม ปีการศึกษา 2569 จำนวน 130 ทุน ให้กับศูนย์การศึกษาพิเศษ ประจำจังหวัดกาญจนบุรี,ศูนย์การศึกษาพิเศษ ประจำจังหวัดกาญจนบุรี ต.บ้านเหนือ อ.เมืองฯ,0,2,0,0,1,ดำเนินงานแล้ว,0,ไม่มีผู้รับบริการ,ไม่มีผู้รับบริการ,หนังสือส่งกระชั้นชิด,,สุพิชชา,พยาบาลวิชาชีพ,สสจ\n1 พ.ย. 69 / 05.00 น,เดิน วิ่ง ปั่น ป้องกันอัมพาต ครั้งที่ 12,จุด start-finish (ศาลากลางจังหวัดกาญจนบุรี),3,8,0,10,4,ดำเนินงานแล้ว,2,ตะคริว 1 และ อื่นๆ 1,นั่งพัก 1 และ Refer 1,,"เคส ญ ไทย 43 ปี ชาปลายมือปลายเท้า ส่ง รพ.พหลฯ แพทย์ dx.syncope ผลปกติ กลับบ้านแล้ว",สุพิชชา,พยาบาลวิชาชีพ,สสจ';
+/* ===== ตัวช่วย ===== */
+var MON=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function parseCSV(t){var r=[],row=[],c="",q=false,i,ch;
+ for(i=0;i<t.length;i++){ch=t[i];
+  if(q){if(ch==='"'){if(t[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}
+  else if(ch==='"')q=true;else if(ch===","){row.push(c);c=""}
+  else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&t[i+1]==="\n")i++;row.push(c);r.push(row);row=[];c=""}
+  else c+=ch}
+ if(c!==""||row.length){row.push(c);r.push(row)}return r}
+function pdate(s){var m=/(\d{1,2})\s*([^\s\d]+)\s*(\d{2,4})(?:\s*\/\s*(\d{1,2})[.:](\d{2}))?/.exec(s||"");
+ if(!m)return{ts:0,key:"ไม่ระบุ"};var mi=MON.indexOf(m[2].replace(/\s/g,""));var y=+m[3];if(y<100)y+=2500;y-=543;
+ if(mi<0)return{ts:0,key:"ไม่ระบุ"};
+ return{ts:new Date(y,mi,+m[1],+(m[4]||0),+(m[5]||0)).getTime(),key:MON[mi]+" "+(y+543)}}
+function tally(txt){var out=[];if(!txt)return out;
+ String(txt).split(/\s*(?:และ|,|\/|\n|;)\s*/).forEach(function(p){p=p.trim();if(!p||/^(ไม่มี|-|ไม่พบ)/.test(p))return;
+  var m=/^(.*?)\s*(\d+)\s*(?:ราย|คน|ครั้ง)?$/.exec(p);
+  out.push(m&&m[1]?{k:m[1].trim(),n:+m[2]}:{k:p,n:1})});return out}
+function N(x){return Number(String(x||"").replace(/[^\d.]/g,""))||0}
+var ICO={cal:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>',pt:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',ref:'<path d="M3 12h15M12 5l7 7-7 7"/>',team:'<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-3.6 2.7-6 6-6s6 2.4 6 6M15 14c3 0 6 1.8 6 5"/>',pct:'<path d="M5 19L19 5"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>'};
+function KP(k){var l=k[0],i=/อัตรา/.test(l)?"pct":/กิจกรรม/.test(l)&&!/ดำเนิน/.test(l)?"cal":/ดำเนิน/.test(l)?"check":/ส่งต่อ/.test(l)?"ref":/บุคลากร/.test(l)?"team":"pt";
+ return'<div class="kpi" style="--c:'+k[2]+'"><svg viewBox="0 0 24 24" aria-hidden="true">'+ICO[i]+'</svg><b>'+k[1]+'</b><span>'+l+'</span></div>'}
+var DOC='<svg viewBox="0 0 130 160" aria-hidden="true"><defs><radialGradient id="k1" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#FFE3CC"/><stop offset="1" stop-color="#E7A97E"/></radialGradient><linearGradient id="k2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#C5D3E6"/></linearGradient><linearGradient id="k3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8E6BD1"/><stop offset="1" stop-color="#4F8FD6"/></linearGradient><linearGradient id="k4" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4A3426"/><stop offset=".5" stop-color="#7A5A44"/><stop offset="1" stop-color="#3A281D"/></linearGradient><linearGradient id="k5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4F6FA"/><stop offset="1" stop-color="#6B7688"/></linearGradient></defs><ellipse cx="65" cy="156" rx="52" ry="5" fill="#243B6B" opacity=".25"/><path d="M8 158Q8 104 44 96h42q36 8 36 62z" fill="url(#k2)"/><path d="M30 110q4 24 2 46M100 110q-4 24-2 46" stroke="#AFC0D8" stroke-width="2" fill="none"/><path d="M50 96l15 30 15-30z" fill="url(#k3)"/><path d="M44 96l10 8-6 14-14-12zM86 96l-10 8 6 14 14-12z" fill="#fff" stroke="#B9C7DC"/><rect x="55" y="78" width="20" height="20" rx="8" fill="url(#k1)"/><ellipse cx="39" cy="57" rx="4.5" ry="7.5" fill="#E7A97E"/><ellipse cx="91" cy="57" rx="4.5" ry="7.5" fill="#E7A97E"/><ellipse cx="65" cy="55" rx="26" ry="29" fill="url(#k1)"/><path d="M38 52Q35 18 66 20Q95 20 92 52Q86 36 65 36Q46 36 38 52z" fill="url(#k4)"/><path d="M52 24q14-5 26 0" stroke="#A88468" stroke-width="2" fill="none" opacity=".7"/><path d="M48 49q5-3 10 0M72 49q5-3 10 0" stroke="#4A3426" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="53" cy="56" r="2.6" fill="#2B2B2B"/><circle cx="77" cy="56" r="2.6" fill="#2B2B2B"/><circle cx="54" cy="55" r=".9" fill="#fff"/><circle cx="78" cy="55" r=".9" fill="#fff"/><path d="M65 58q-2 7 2 8" stroke="#C98A66" stroke-width="1.6" fill="none"/><path d="M55 70Q65 78 75 70" stroke="#B5523B" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M45 96Q38 134 65 136Q92 134 85 96" stroke="url(#k5)" stroke-width="4" fill="none"/><circle cx="65" cy="137" r="7" fill="url(#k5)" stroke="#4A5568" stroke-width="2"/><rect x="92" y="116" width="22" height="14" rx="3" fill="#fff" stroke="#9FB3C8"/><circle cx="98" cy="123" r="3" fill="#DCD0F5"/><path d="M104 120h6M104 124h6" stroke="#9FB3C8" stroke-width="1.6"/></svg>';
+var EMP='<svg viewBox="0 0 120 100" aria-hidden="true"><defs><linearGradient id="eg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00B4D8"/><stop offset="1" stop-color="#7B2FF7"/></linearGradient></defs><rect x="22" y="10" width="62" height="78" rx="9" fill="url(#eg)"/><rect x="30" y="20" width="46" height="62" rx="5" fill="#fff"/><path d="M38 34h30M38 44h30M38 54h18" stroke="#B8C6D8" stroke-width="4" stroke-linecap="round"/><rect x="40" y="5" width="26" height="10" rx="4" fill="#F2305A"/><circle cx="84" cy="66" r="16" fill="none" stroke="#FFB800" stroke-width="6"/><path d="M96 78l14 14" stroke="#FFB800" stroke-width="7" stroke-linecap="round"/></svg>';
+function EMPTY(t){return'<div class="empty">'+EMP+t+'</div>'}
+function BANNER(P,R,n){return'<div class="banner">'+DOC+'<div><p>ให้บริการผู้ป่วย <b>'+P+'</b> ราย · ส่งต่อ <b>'+R+'</b> ราย</p><p style="opacity:.92;font-size:.86rem">จากกิจกรรมทั้งหมด '+n+' รายการ · ข้อมูลอัปเดตอัตโนมัติจาก Google Sheets</p></div></div>'}
+
+function sev(o){var m=0,v=0,p=o.pts;o.sym.forEach(function(x){if(SEVRE.test(x.k))v+=x.n;else if(MODRE.test(x.k))m+=x.n});
+ v=Math.min(v,p);m=Math.min(m,p-v);o.refer=Math.min(o.refer,p);m=Math.max(m,Math.min(o.refer-v,p-v));
+ o.sv=v;o.md=m;o.ml=Math.max(p-m-v,0);o.fa=p-o.refer;o.none=p===0?1:0;return o}
+function build(csv){var out=[];parseCSV(csv).slice(2).forEach(function(r){if(!(r[0]||"").trim()&&!(r[1]||"").trim())return;var d=pdate(r[0]);
+ var o={dt:(r[0]||"").trim(),ts:d.ts,mon:d.key,act:(r[1]||"").trim(),place:(r[2]||"").trim(),status:(r[8]||"").trim()||"ไม่ระบุ",pts:N(r[9]),symT:(r[10]||"").trim(),trtT:(r[11]||"").trim(),prob:(r[12]||"").trim(),note:(r[13]||"").trim(),who:(r[14]||"").trim()};
+ o.sym=tally(o.symT);o.trt=tally(o.trtT);o.refer=o.trt.reduce(function(a,x){return a+(/refer|ส่งต่อ/i.test(x.k)?x.n:0)},0);out.push(sev(o))});return out}
+var SHEET=[],ALL=[],LOCAL=[],tab=0,lastOk=null,left=45,LS="ev_local_v1";
+try{LOCAL=JSON.parse(localStorage.getItem(LS)||"[]")}catch(e){LOCAL=[]}
+function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(LOCAL))}catch(e){}}
+function merge(){ALL=SHEET.concat(LOCAL).sort(function(a,b){return b.ts-a.ts})}
+var TABS=["ภาพรวม","อาการ • การรักษา","รายกิจกรรม","กรอกข้อมูล"],PAL=["#F26D85","#F5A14E","#F3D24A","#6CC686","#58B2EA","#7B8FE8","#B27CE0"];
+function filt(){var m=$("fm").value,s=$("fs").value,q=$("q").value.trim().toLowerCase();
+ return ALL.filter(function(o){return(!m||o.mon===m)&&(!s||o.status===s)&&(!q||(o.act+o.place).toLowerCase().indexOf(q)>=0)})}
+function agg(rows,key){var m={};rows.forEach(function(o){o[key].forEach(function(x){m[x.k]=(m[x.k]||0)+x.n})});return Object.keys(m).map(function(k){return[k,m[k]]}).sort(function(a,b){return b[1]-a[1]})}
+function bars(list){if(!list.length)return EMPTY("ยังไม่มีข้อมูล");var mx=Math.max.apply(null,list.map(function(x){return x[1]}))||1;
+ return list.map(function(x,i){return'<div class="hb" style="--c:'+PAL[i%7]+'"><span>'+esc(x[0])+'</span><div class="t"><div class="f" style="width:'+Math.max(x[1]/mx*100,3)+'%"></div></div><b>'+x[1]+'</b></div>'}).join("")}
+function sum(r,k){return r.reduce(function(a,o){return a+(o[k]||0)},0)}
+function PANEL(title,items){var tot=items.reduce(function(a,x){return a+(x[5]?x[1]:0)},0),acc=0,g=[];
+ items.forEach(function(x){if(x[5]&&x[1]>0){g.push(x[3]+" "+(acc/tot*100)+"% "+((acc+x[1])/tot*100)+"%");acc+=x[1]}});
+ return'<div class="card"><h2>'+title+'</h2><div class="pn"><div class="dn" style="background:'+(tot?"conic-gradient("+g.join(",")+")":"#E3E8F4")+'"><span><b style="font-size:1.6rem">'+tot+'</b>ผู้ป่วย</span></div><div class="cats">'+
+ items.map(function(x){return'<div class="ct" style="background:'+x[2]+'"><b>'+x[1]+'</b><span>'+x[0]+'</span><small>'+(x[5]?(tot?Math.round(x[1]/tot*100)+"% ของผู้ป่วย":"–"):x[4])+'</small></div>'}).join("")+'</div></div></div>'}
+function BANNER(P,R,n){return'<div class="banner">'+DOC+'<div><p>ให้บริการผู้ป่วย <b>'+P+'</b> ราย · ส่งต่อ <b>'+R+'</b> ราย</p><p style="color:var(--mute);font-size:.86rem">จากกิจกรรมทั้งหมด '+n+' รายการ</p></div></div>'}
+function EV(o){var c=o.status.indexOf("ดำเนินงานแล้ว")>=0?"ok":/ยกเลิก/.test(o.status)?"bad":"wn";
+ var pills=o.pts===0?'<span class="pill" style="background:var(--s0)">ไม่มีผู้รับบริการ</span>':
+ '<span class="pill" style="background:var(--p1);font-weight:700">ผู้ป่วย '+o.pts+' ราย</span><span class="pill" style="background:var(--s1)">เล็กน้อย '+o.ml+'</span><span class="pill" style="background:var(--s2)">ปานกลาง '+o.md+'</span><span class="pill" style="background:var(--s3)">รุนแรง '+o.sv+'</span><span class="pill" style="background:var(--t1)">ปฐมพยาบาล '+o.fa+'</span><span class="pill" style="background:var(--t2)">ส่งต่อ '+o.refer+'</span>';
+ return'<div class="card ev" style="--c:'+(o.sv?"#EE6A82":o.md?"#F5B83D":o.pts?"#5CBF7E":"#C9C2B2")+'"><h3>'+esc(o.act)+'</h3><div class="meta">'+esc(o.dt)+' · '+esc(o.place)+' <span class="chip '+c+'">'+esc(o.status)+'</span>'+(o.local?' <span class="chip lc">กรอกในหน้านี้</span>':'')+'</div><div>'+pills+'</div>'+
+ '<dl class="dl"><dt>อาการ</dt><dd>'+esc(o.symT||"–")+'</dd><dt>การรักษา</dt><dd>'+esc(o.trtT||"–")+'</dd>'+(o.prob?'<dt>ปัญหา/อุปสรรค</dt><dd>'+esc(o.prob)+'</dd>':'')+(o.note?'<dt>หมายเหตุ</dt><dd>'+esc(o.note)+'</dd>':'')+(o.who?'<dt>ผู้รายงาน</dt><dd>'+esc(o.who)+'</dd>':'')+'</dl>'+
+ (o.local?'<p><button type="button" onclick="copyRow(\''+o.id+'\')">คัดลอกแถวไปวางในชีต</button> <button type="button" onclick="delLocal(\''+o.id+'\')">ลบรายการนี้</button></p>':'')+'</div>'}
+function render(){
+ if(tab===3){renderForm();return}
+ var rows=filt();if(!rows.length){$("main").innerHTML=EMPTY("ไม่พบข้อมูลตามเงื่อนไขที่เลือก");return}
+ var P=sum(rows,"pts"),R=sum(rows,"refer"),none=rows.filter(function(o){return o.pts===0}).length,done=rows.filter(function(o){return o.status.indexOf("ดำเนินงานแล้ว")>=0}).length,h="";
+ var ml=sum(rows,"ml"),md=sum(rows,"md"),sv=sum(rows,"sv"),fa=sum(rows,"fa");
+ if(tab===0){
+  h+='<div class="kpis">'+[["กิจกรรมทั้งหมด",rows.length,"x"],["ดำเนินงานแล้ว",done,"x"],["จำนวนผู้ป่วยทั้งหมด",P,"x"],["ส่งต่อ (Refer)",R,"x"]].map(KP).join("")+'</div>';
+  h+='<div class="grid2">'+PANEL("ผู้ป่วยแยกตามระดับอาการ",[["ไม่มีผู้รับบริการ",none,"var(--s0)","#C9C2B2","กิจกรรมที่ไม่มีผู้ป่วย",0],["ผู้ป่วยอาการทั่วไป/เล็กน้อย",ml,"var(--s1)","#5CBF7E","",1],["ผู้ป่วยอาการปานกลาง",md,"var(--s2)","#F5B83D","",1],["ผู้ป่วยอาการรุนแรง",sv,"var(--s3)","#EE6A82","",1]])+
+  PANEL("การรักษา",[["ไม่มีผู้รับบริการ",none,"var(--s0)","#C9C2B2","กิจกรรมที่ไม่มีผู้ป่วย",0],["ปฐมพยาบาลเบื้องต้น",fa,"var(--t1)","#5AAEE8","",1],["ส่งต่อ",R,"var(--t2)","#9B7BD8","",1]])+'</div>';
+ }
+ if(tab===1){
+  h+=BANNER(P,R,rows.length)+'<div class="grid2"><div class="card"><h2>อาการที่พบ</h2>'+bars(agg(rows,"sym"))+'</div><div class="card"><h2>การปฐมพยาบาล / การรักษา</h2>'+bars(agg(rows,"trt"))+'</div></div>'+
+  '<div class="card"><h2>จำนวนผู้ป่วยรายกิจกรรม</h2>'+bars(rows.filter(function(o){return o.pts>0}).map(function(o){return[o.act.slice(0,46),o.pts]}))+(none?'<p class="meta">อีก '+none+' กิจกรรมไม่มีผู้รับบริการ</p>':'')+'</div>';
+ }
+ if(tab===2)h=rows.map(EV).join("");
+ $("main").innerHTML=h}
+/* ----- ฟอร์มกรอกข้อมูล ----- */
+function p2(n){return(n<10?"0":"")+n}
+function nowLocal(){var d=new Date();return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+"T"+p2(d.getHours())+":"+p2(d.getMinutes())}
+function renderForm(){var loc=ALL.filter(function(o){return o.local});
+ $("main").innerHTML='<form class="card" id="f" autocomplete="off"><h2>กรอกรายงานกิจกรรมใหม่</h2><div class="fm">'+
+ '<label>วันที่/เวลา<input type="datetime-local" id="f_dt" value="'+nowLocal()+'"></label>'+
+ '<label class="w">ชื่อกิจกรรม *<input id="f_act" required></label><label class="w">สถานที่<input id="f_pl"></label>'+
+ '<label>สถานะ<select id="f_st"><option>ดำเนินงานแล้ว</option><option>อยู่ระหว่างดำเนินงาน</option><option>ยกเลิก</option></select></label>'+
+ '<label class="g1">ผู้ป่วยอาการทั่วไป/เล็กน้อย (ราย)<input type="number" min="0" id="f_ml" value="0"></label><label class="g2">ผู้ป่วยอาการปานกลาง (ราย)<input type="number" min="0" id="f_md" value="0"></label><label class="g3">ผู้ป่วยอาการรุนแรง (ราย)<input type="number" min="0" id="f_sv" value="0"></label>'+
+ '<label class="g4">ส่งต่อ (ราย) — ที่เหลือนับเป็นปฐมพยาบาลเบื้องต้น<input type="number" min="0" id="f_rf" value="0"></label>'+
+ '<label class="w">ชื่ออาการที่พบ (ถ้ามี) เช่น ตะคริว, เป็นลม<input id="f_sy"></label><label class="w">ปัญหา / อุปสรรค<input id="f_pb"></label><label class="w">หมายเหตุ<textarea id="f_nt" rows="2"></textarea></label><label>ผู้ลงข้อมูล<input id="f_who"></label></div>'+
+ '<p><button class="sub" type="submit">บันทึกข้อมูล</button></p><div id="fmsg"></div><p class="meta">'+(SCRIPT_URL?"บันทึกลง Google Sheets โดยตรง และจะแสดงเมื่อโหลดข้อมูลรอบถัดไป":"ยังไม่ได้ตั้งค่า Apps Script: ข้อมูลจะแสดงในหน้านี้และเก็บในเบราว์เซอร์เครื่องนี้ ใช้ปุ่ม “คัดลอกแถว” เพื่อวางลงชีตให้ทุกคนเห็น")+'</p></form>'+
+ '<h2 style="margin:18px 4px 0;font-size:1rem">รายการที่กรอกในหน้านี้ ('+loc.length+')</h2>'+(loc.length?loc.map(EV).join(""):EMPTY("ยังไม่มีรายการที่กรอก"));
+ $("f").onsubmit=submitForm}
+function msg(t,bad){$("fmsg").innerHTML='<div class="'+(bad?"er2":"ok2")+'">'+esc(t)+'</div>'}
+function rowOf(o){var sy=[];if(o.ml)sy.push("เล็กน้อย "+o.ml);if(o.md)sy.push("ปานกลาง "+o.md);if(o.sv)sy.push("รุนแรง "+o.sv);var tr=[];if(o.fa)tr.push("ปฐมพยาบาล "+o.fa);if(o.refer)tr.push("Refer "+o.refer);
+ return[o.dt,o.act,o.place,0,0,0,0,0,o.status,o.pts,sy.join(" และ ")||"ไม่มีผู้รับบริการ",tr.join(" และ ")||"ไม่มีผู้รับบริการ",o.prob,(o.symT?"อาการ: "+o.symT+" ":"")+o.note,o.who,"",""]}
+function submitForm(e){e.preventDefault();var g=function(i){return $(i).value.trim()},n=function(i){return Math.max(0,parseInt($(i).value,10)||0)};
+ var d=new Date($("f_dt").value);if(isNaN(d))d=new Date();if(!g("f_act")){msg("กรุณากรอกชื่อกิจกรรม",1);return}
+ var ml=n("f_ml"),md=n("f_md"),sv=n("f_sv"),p=ml+md+sv,rf=Math.min(n("f_rf"),p);
+ var o={id:"l"+Date.now(),local:1,ts:d.getTime(),mon:MON[d.getMonth()]+" "+(d.getFullYear()+543),dt:d.getDate()+" "+MON[d.getMonth()]+" "+p2((d.getFullYear()+543)%100)+" / "+p2(d.getHours())+"."+p2(d.getMinutes())+" น",
+  act:g("f_act"),place:g("f_pl"),status:g("f_st"),pts:p,ml:ml,md:md,sv:sv,refer:rf,fa:p-rf,none:p?0:1,symT:g("f_sy"),prob:g("f_pb"),note:g("f_nt"),who:g("f_who")};
+ o.sym=tally(o.symT);o.trtT=p?"ปฐมพยาบาล "+o.fa+(rf?" และ Refer "+rf:""):"ไม่มีผู้รับบริการ";o.trt=tally(o.trtT);
+ if(SCRIPT_URL){fetch(SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify(rowOf(o))}).then(function(){msg("ส่งข้อมูลไปยังชีตแล้ว กำลังรีเฟรช…");setTimeout(load,2500)}).catch(function(){msg("ส่งข้อมูลไม่สำเร็จ",1)});return}
+ LOCAL.push(o);saveLocal();merge();fillFilters();renderForm();msg("บันทึกแล้ว — ข้อมูลปรากฏในแท็บภาพรวมและรายกิจกรรม")}
+function delLocal(id){LOCAL=LOCAL.filter(function(o){return o.id!==id});saveLocal();merge();fillFilters();render()}
+function copyRow(id){var o=LOCAL.filter(function(x){return x.id===id})[0];if(!o)return;var t=rowOf(o).map(function(v){return String(v).replace(/[\t\n]/g," ")}).join("\t");
+ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){alert("คัดลอกแล้ว วางลงแถวใหม่ในชีตได้เลย")}).catch(function(){prompt("คัดลอกข้อความนี้ (Ctrl+C):",t)})}
+/* ----- ดึงข้อมูล ----- */
+function fillFilters(){var ms=[],ss=[];ALL.forEach(function(o){if(ms.indexOf(o.mon)<0)ms.push(o.mon);if(ss.indexOf(o.status)<0)ss.push(o.status)});
+ var fm=$("fm"),fs=$("fs"),a=fm.value,b=fs.value;
+ fm.innerHTML='<option value="">ทุกเดือน</option>'+ms.map(function(m){return'<option>'+esc(m)+'</option>'}).join("");
+ fs.innerHTML='<option value="">ทุกสถานะ</option>'+ss.map(function(m){return'<option>'+esc(m)+'</option>'}).join("");
+ if(ms.indexOf(a)>=0)fm.value=a;if(ss.indexOf(b)>=0)fs.value=b}
+function setStat(on,m){var s=$("stat");s.className="badge "+(on?"on":"off");s.textContent=m}
+function apply(csv,isLive){SHEET=build(csv);merge();fillFilters();if(tab!==3||!$("f"))render();
+ if(isLive){lastOk=new Date();setStat(true,"เชื่อมต่อสด");$("errbox").innerHTML="";$("upd").textContent="อัปเดตล่าสุด "+lastOk.toLocaleTimeString("th-TH")}}
+function load(){$("rf").disabled=true;
+ fetch(CSV_URL+"&_="+Date.now(),{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.text()}).then(function(t){apply(t,true)})
+ .catch(function(e){setStat(false,"ออฟไลน์ (แสดงข้อมูลล่าสุดที่โหลดได้)");if(!lastOk)apply(SNAPSHOT,false);
+  $("errbox").innerHTML='<div class="err">เชื่อมต่อ Google Sheets ไม่ได้ ('+esc(e.message)+') — ตรวจสอบอินเทอร์เน็ตและว่าชีตยังเผยแพร่เป็น CSV อยู่ หากเปิดในแอปที่บล็อกการเชื่อมต่อภายนอก ให้บันทึกไฟล์แล้วเปิดในเบราว์เซอร์โดยตรง ระบบจะลองใหม่อัตโนมัติ</div>'})
+ .then(function(){$("rf").disabled=false;resetCd()})}
+function resetCd(){left=+$("iv").value}
+setInterval(function(){if(document.hidden)return;left--;$("cd").textContent="รีเฟรชอีก "+Math.max(left,0)+" วิ";if(left<=0){left=+$("iv").value;load()}},1000);
+var tb=$("tabs");TABS.forEach(function(t,i){var b=document.createElement("button");b.type="button";b.className="tab";b.role="tab";b.textContent=t;b.setAttribute("aria-selected",i===0);
+ b.onclick=function(){tab=i;[].forEach.call(tb.children,function(x,j){x.setAttribute("aria-selected",j===i)});render()};tb.appendChild(b)});
+["fm","fs"].forEach(function(i){$(i).onchange=render});$("q").oninput=render;$("iv").onchange=resetCd;$("rf").onclick=load;
+merge();load();
+</script>
+</body>
+</html>
